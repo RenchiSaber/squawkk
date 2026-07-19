@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Squawkk: Your digital neighbourhood</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --surface-color: #ffffff;
+            --accent-yellow: #facc15;
+            --text-main: #1a1a1b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+            overflow-y: scroll;
+        }
+
+        .brand-font { font-family: 'Outfit', sans-serif; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .animate-dropdown { animation: slideDown 0.2s ease forwards; }
+        .animate-fade-in { animation: fadeIn 0.3s ease forwards; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+        /* SPA View Switching */
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.3s ease; }
+        
+        /* Modals */
+        .modal-backdrop {
+            display: none;
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.2s ease;
+        }
+        .modal-backdrop.active { display: flex; }
+    </style>
+</head>
+<body class="pt-16">
+
+    <header class="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-4 sm:px-6 shadow-sm transition-all">
+        
+        <!-- Logo -->
+        <a href="#" onclick="navigate('home')" class="flex items-center gap-1 group text-decoration-none">
+            <div class="brand-font text-2xl font-bold tracking-tight text-gray-900 transition-colors group-hover:text-yellow-500">
+                squawkk<span class="text-yellow-400">.</span>
+            </div>
+        </a>
+
+        <!-- Centered Search -->
+        <div class="hidden md:block flex-grow max-w-lg mx-6 relative">
+            <div class="relative group">
+                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-yellow-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" placeholder="Search communities, posts, users..." class="w-full bg-gray-100 border border-transparent rounded-full py-2 pl-10 pr-4 text-sm transition-all focus:bg-white focus:border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-100 hover:bg-gray-50">
+            </div>
+        </div>
+
+        <!-- Right Navigation / Auth -->
+        <div class="flex items-center gap-3 sm:gap-6 relative">
+            <nav class="hidden sm:flex items-center gap-4 text-sm font-semibold text-gray-600">
+                <a href="#" onclick="navigate('communities')" class="hover:text-yellow-500 transition-colors">Communities</a>
+                <a href="#" onclick="navigate('about')" class="hover:text-yellow-500 transition-colors">About</a>
+            </nav>
+
+            <div class="h-6 w-px bg-gray-200 hidden sm:block"></div>
+
+            <div id="auth-container" class="flex items-center gap-3">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto pt-8 pb-12 px-4 sm:px-6 min-h-screen">
+        
+        <section id="view-home" class="view-section active">
+            <div class="flex items-center gap-2 mb-6 border-b border-gray-200 pb-2">
+                <button class="text-sm font-bold px-4 py-2 rounded-lg text-gray-900 border-b-2 border-yellow-400">Hot</button>
+                <button class="text-sm font-bold px-4 py-2 rounded-lg text-gray-500 hover:text-yellow-600 hover:bg-gray-50 transition-colors border-b-2 border-transparent">New</button>
+                <button class="text-sm font-bold px-4 py-2 rounded-lg text-gray-500 hover:text-yellow-600 hover:bg-gray-50 transition-colors border-b-2 border-transparent">Top</button>
+            </div>
+
+            <!-- Posts Container -->
+            <div id="feed-container" class="flex flex-col gap-4">
+                <div class="text-center py-10 text-gray-500 animate-pulse">Loading posts from the network...</div>
+            </div>
+        </section>
+
+        <section id="view-communities" class="view-section">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <div>
+                    <h1 class="brand-font text-3xl font-black text-gray-900 tracking-tight">Discover Communities</h1>
+                    <p class="text-gray-500 mt-1">Find your new favorite corner of the internet.</p>
+                </div>
+                <button onclick="openModal('modal-create-community')" class="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-6 py-2.5 rounded-full transition-transform transform active:scale-95 shadow-sm">
+                    + Create a Community
+                </button>
+            </div>
+
+            <div id="communities-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Injected via JS -->
+            </div>
+        </section>
+
+        <section id="view-about" class="view-section">
+            <div class="text-center py-16">
+                <h1 class="brand-font text-5xl sm:text-6xl font-black text-gray-900 mb-6 tracking-tight">
+                    Welcome to <span class="text-yellow-400">Squawkk.</span>
+                </h1>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                    A digital neighbourhood where communities set their own rules. Share knowledge, creations, and ideas in a space tailored by you, for you.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+                <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-center transform transition-all hover:-translate-y-1 hover:border-yellow-400 hover:shadow-md">
+                    <div class="text-5xl font-black text-gray-900 mb-2 brand-font stat-counter" data-target="15243">0</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wide text-yellow-500">Active Squawkers</div>
+                </div>
+                <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-center transform transition-all hover:-translate-y-1 hover:border-yellow-400 hover:shadow-md">
+                    <div class="text-5xl font-black text-gray-900 mb-2 brand-font stat-counter" data-target="482">0</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wide text-yellow-500">Communities</div>
+                </div>
+                <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-center transform transition-all hover:-translate-y-1 hover:border-yellow-400 hover:shadow-md">
+                    <div class="text-5xl font-black text-gray-900 mb-2 brand-font stat-counter" data-target="98405">0</div>
+                    <div class="text-sm font-bold text-gray-500 uppercase tracking-wide text-yellow-500">Total Posts</div>
+                </div>
+            </div>
+
+            <div class="bg-gray-900 text-white rounded-3xl p-10 text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-300 to-yellow-500"></div>
+                <h2 class="brand-font text-3xl font-bold mb-4">The Next Generation of Moderation</h2>
+                <p class="text-gray-300 mb-8 max-w-2xl mx-auto text-lg">
+                    Squawkk utilizes localized Large Language Models. This means each community writes its own "Constitution". Our AI learns your specific rules and gracefully moderates content based on *your* community's unique culture—not a global, one-size-fits-all filter.
+                </p>
+                <div class="inline-block bg-yellow-400 text-gray-900 font-bold px-6 py-3 rounded-full text-sm">
+                    Remember to Be Kind, Please Rewind.
+                </div>
+            </div>
+        </section>
+    </main>
+
+    
+    <!-- Auth Modal -->
+    <div id="modal-auth" class="fixed inset-0 bg-gray-900/60 z-[100] modal-backdrop items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden animate-dropdown relative">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <div class="brand-font text-3xl font-black text-gray-900">squawkk<span class="text-yellow-400">.</span></div>
+                    <p class="text-gray-500 mt-2 text-sm">Pick a username to join the network.</p>
+                </div>
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Username</label>
+                        <input type="text" id="login-username" required placeholder="e.g. Squawker99" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 focus:bg-white focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 outline-none transition-all">
+                    </div>
+                    <button type="submit" class="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-lg py-3 rounded-xl transition-transform active:scale-95 mt-4">
+                        Enter Neighborhood
+                    </button>
+                </form>
+            </div>
+            <button onclick="closeModal('modal-auth')" class="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Submit Post Modal -->
+    <div id="modal-submit" class="fixed inset-0 bg-gray-900/60 z-[100] modal-backdrop items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden animate-dropdown flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h2 class="brand-font text-xl font-bold text-gray-900">Create a Post</h2>
+                <button onclick="closeModal('modal-submit')" class="text-gray-400 hover:text-gray-900 transition-colors">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <form id="post-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Community</label>
+                        <select id="post-community" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 outline-none">
+                            <option value="technology">c/technology</option>
+                            <option value="gaming">c/gaming</option>
+                            <option value="design">c/design</option>
+                            <option value="announcements">c/announcements</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Title</label>
+                        <input type="text" id="post-title" required placeholder="An interesting title" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 focus:bg-white focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Body (Optional)</label>
+                        <textarea id="post-content" rows="5" placeholder="What are your thoughts?" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 focus:bg-white focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 outline-none transition-all resize-none"></textarea>
+                    </div>
+                    <div class="pt-4 flex justify-end gap-3">
+                        <button type="button" onclick="closeModal('modal-submit')" class="px-5 py-2.5 rounded-lg text-gray-600 font-bold hover:bg-gray-100 transition-colors">Cancel</button>
+                        <button type="submit" class="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-6 py-2.5 rounded-lg transition-transform active:scale-95">Post</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, onSnapshot, getDocs, addDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration & Auth ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'squawkk-local-dev';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            projectId: "demo-project", // Fallback for local testing
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Core App State
+        let currentUserUid = null;
+        let currentUsername = null;
+        let livePosts = [];
+        let liveCommunities = [];
+
+        // Paths strictly following MANDATORY Rules
+        const postsRef = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
+        const commsRef = collection(db, 'artifacts', appId, 'public', 'data', 'communities');
+
+        // Initialize Authentication First
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                currentUserUid = auth.currentUser.uid;
+                
+                // Try to load saved username from local storage just for demo continuity
+                const savedName = localStorage.getItem('squawkk_username');
+                if (savedName) currentUsername = savedName;
+                
+                renderTopNav();
+                startLiveListeners();
+                seedInitialData(); // Populate default communities if empty
+            } catch (err) {
+                console.error("Auth Error:", err);
+            }
+        }
+
+        // --- Realtime Database Listeners ---
+        function startLiveListeners() {
+            if (!currentUserUid) return;
+
+            // Listen to Posts
+            onSnapshot(postsRef, (snapshot) => {
+                livePosts = [];
+                snapshot.forEach(doc => livePosts.push({ id: doc.id, ...doc.data() }));
+                // Sort by score in memory (Rule 2 Compliance: No complex queries)
+                livePosts.sort((a, b) => (b.score || 0) - (a.score || 0));
+                renderPosts();
+            }, (err) => console.error(err));
+
+            // Listen to Communities
+            onSnapshot(commsRef, (snapshot) => {
+                liveCommunities = [];
+                snapshot.forEach(doc => liveCommunities.push({ id: doc.id, ...doc.data() }));
+                renderCommunities();
+            }, (err) => console.error(err));
+        }
+
+        // --- UI Render Functions ---
+        
+        function renderTopNav() {
+            const container = document.getElementById('auth-container');
+            if (currentUsername) {
+                container.innerHTML = `
+                    <button onclick="openModal('modal-submit')" class="hidden sm:flex bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-sm px-5 py-2 rounded-full transition-transform transform active:scale-95 items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Submit a new post
+                    </button>
+                    
+                    <div class="relative">
+                        <button onclick="toggleDropdown('user-dropdown')" class="flex items-center gap-2 p-1.5 pr-3 rounded-full border border-transparent hover:bg-gray-100 hover:border-gray-200 transition-all outline-none">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-400 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                ${currentUsername.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="hidden md:flex flex-col items-start leading-tight">
+                                <span class="text-sm font-bold text-gray-800">${currentUsername}</span>
+                            </div>
+                            <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+
+                        <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden animate-dropdown z-50">
+                            <div class="py-1">
+                                <a href="#" class="flex items-center px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition-colors">My squawkk</a>
+                                <a href="#" class="flex items-center px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition-colors">Preferences</a>
+                            </div>
+                            <div class="h-px bg-gray-100 my-1"></div>
+                            <div class="py-1">
+                                <a href="#" class="flex items-center px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors">Mod Queue</a>
+                            </div>
+                            <div class="h-px bg-gray-100 my-1"></div>
+                            <div class="py-1">
+                                <button onclick="handleLogout()" class="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">Log Out</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <button onclick="openModal('modal-auth')" class="text-sm font-bold text-gray-700 hover:text-yellow-500 transition-colors px-2">Log In</button>
+                    <button onclick="openModal('modal-auth')" class="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-sm px-5 py-2 rounded-full transition-transform transform active:scale-95 shadow-sm">Join Squawkk</button>
+                `;
+            }
+        }
+
+        function renderPosts() {
+            const container = document.getElementById('feed-container');
+            if (livePosts.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 bg-white border border-dashed border-gray-300 rounded-2xl text-gray-500 font-medium">It's quiet. Be the first to squawk!</div>`;
+                return;
+            }
+
+            container.innerHTML = livePosts.map(post => {
+                const isUpvoted = post.upvotedBy && post.upvotedBy.includes(currentUserUid);
+                const isDownvoted = post.downvotedBy && post.downvotedBy.includes(currentUserUid);
+                
+                return `
+                <article class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-yellow-300 transition-all duration-200 flex overflow-hidden group">
+                    <div class="w-12 bg-gray-50 flex flex-col items-center py-3 border-r border-gray-100 group-hover:bg-yellow-50/30 transition-colors">
+                        <button onclick="handleVote('${post.id}', 1)" class="p-1 rounded text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors ${isUpvoted ? 'text-orange-500' : ''}">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-8 10h16z"/></svg>
+                        </button>
+                        <span class="text-sm font-bold my-1 ${isUpvoted ? 'text-orange-500' : isDownvoted ? 'text-blue-500' : 'text-gray-700'}">${post.score || 0}</span>
+                        <button onclick="handleVote('${post.id}', -1)" class="p-1 rounded text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors ${isDownvoted ? 'text-blue-500' : ''}">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20l8-10H4z"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="p-4 flex-grow flex flex-col justify-center">
+                        <div class="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                            <a href="#" class="font-bold text-gray-900 hover:text-yellow-600 transition-colors">c/${post.community}</a>
+                            <span>•</span>
+                            <span>Posted by <span class="text-gray-800 font-medium">${post.author}</span></span>
+                        </div>
+                        
+                        <div class="flex items-start gap-4 mt-1">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 leading-snug hover:text-yellow-600 transition-colors">${post.title}</h3>
+                                ${post.content ? `<p class="text-sm text-gray-600 mt-1.5 line-clamp-3">${post.content}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            `}).join('');
+        }
+
+        function renderCommunities() {
+            const container = document.getElementById('communities-container');
+            container.innerHTML = liveCommunities.map(comm => `
+                <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-yellow-400 transition-all group cursor-pointer relative">
+                    <div class="h-16 w-full bg-gradient-to-r ${comm.theme || 'from-gray-200 to-gray-300'} opacity-80 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="p-5 pt-0 relative">
+                        <div class="w-14 h-14 rounded-xl bg-white border-4 border-white shadow-sm flex items-center justify-center text-xl font-bold text-gray-700 -mt-7 mb-2 bg-gray-100 z-10 relative">
+                            ${comm.name.charAt(0).toUpperCase()}
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 group-hover:text-yellow-600 transition-colors">c/${comm.name}</h3>
+                        <p class="text-sm text-gray-500 mt-1 line-clamp-2">${comm.desc}</p>
+                        
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                            <div class="text-xs font-semibold text-gray-500"><span class="block text-gray-900">${comm.members || 1}</span> members</div>
+                            ${comm.ai ? `
+                            <div class="flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-md" title="AI Moderated">
+                                AI Tuned
+                            </div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- App Actions ---
+
+        window.handleVote = async function(postId, direction) {
+            if (!currentUsername) return window.openModal('modal-auth');
+            if (!currentUserUid) return;
+
+            const postRef = doc(db, 'artifacts', appId, 'public', 'data', 'posts', postId);
+            const postSnap = await getDoc(postRef);
+            if (!postSnap.exists()) return;
+            
+            const post = postSnap.data();
+            let score = post.score || 0;
+            let upvotedBy = post.upvotedBy || [];
+            let downvotedBy = post.downvotedBy || [];
+
+            // Remove existing votes
+            if (upvotedBy.includes(currentUserUid)) { score--; upvotedBy = upvotedBy.filter(id => id !== currentUserUid); }
+            if (downvotedBy.includes(currentUserUid)) { score++; downvotedBy = downvotedBy.filter(id => id !== currentUserUid); }
+
+            // Add new vote if clicking a new direction
+            if (direction === 1 && !post.upvotedBy?.includes(currentUserUid)) { score++; upvotedBy.push(currentUserUid); }
+            if (direction === -1 && !post.downvotedBy?.includes(currentUserUid)) { score--; downvotedBy.push(currentUserUid); }
+
+            await updateDoc(postRef, { score, upvotedBy, downvotedBy });
+        }
+
+        // Form Handlers
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value.trim();
+            if (username) {
+                currentUsername = username;
+                localStorage.setItem('squawkk_username', username);
+                window.closeModal('modal-auth');
+                renderTopNav();
+            }
+        });
+
+        document.getElementById('post-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUsername) return;
+
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-content').value;
+            const community = document.getElementById('post-community').value;
+
+            try {
+                await addDoc(postsRef, {
+                    title,
+                    content,
+                    community,
+                    author: currentUsername,
+                    score: 1,
+                    upvotedBy: [currentUserUid],
+                    downvotedBy: [],
+                    createdAt: new Date().toISOString()
+                });
+                
+                document.getElementById('post-form').reset();
+                window.closeModal('modal-submit');
+                window.navigate('home');
+            } catch (err) {
+                console.error("Failed to post:", err);
+            }
+        });
+
+        window.handleLogout = function() {
+            currentUsername = null;
+            localStorage.removeItem('squawkk_username');
+            renderTopNav();
+            window.toggleDropdown('user-dropdown');
+        };
+
+        // --- Seed Initial Data (For Demo Polish) ---
+        async function seedInitialData() {
+            const snap = await getDocs(commsRef);
+            if (snap.empty) {
+                const initialComms = [
+                    { name: "technology", desc: "The latest news and trends in tech.", members: 1420, theme: "from-blue-400 to-blue-600", ai: true },
+                    { name: "gaming", desc: "Everything from board games to the latest releases.", members: 890, theme: "from-purple-500 to-pink-500", ai: false },
+                    { name: "design", desc: "UI/UX, graphic design, and aesthetics.", members: 450, theme: "from-yellow-300 to-orange-400", ai: true },
+                    { name: "announcements", desc: "Official Squawkk network updates.", members: 9999, theme: "from-gray-700 to-gray-900", ai: false }
+                ];
+                for (let c of initialComms) { await addDoc(commsRef, c); }
+            }
+        }
+
+        // --- UI Globals ---
+        window.navigate = function(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            window.scrollTo(0,0);
+            
+            if(viewId === 'about') {
+                document.querySelectorAll('.stat-counter').forEach(counter => {
+                    const target = +counter.getAttribute('data-target');
+                    const updateCount = () => {
+                        const current = +counter.innerText.replace(/,/g, '');
+                        const increment = target / 50;
+                        if (current < target) {
+                            counter.innerText = Math.ceil(current + increment).toLocaleString();
+                            setTimeout(updateCount, 20);
+                        } else {
+                            counter.innerText = target.toLocaleString();
+                        }
+                    };
+                    counter.innerText = '0';
+                    updateCount();
+                });
+            }
+        };
+
+        window.openModal = function(id) {
+            document.getElementById(id).classList.add('active');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeModal = function(id) {
+            document.getElementById(id).classList.remove('active');
+            document.body.style.overflow = 'auto';
+        };
+
+        window.toggleDropdown = function(id) {
+            document.getElementById(id).classList.toggle('hidden');
+        };
+
+        window.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('user-dropdown');
+            if (dropdown && !dropdown.classList.contains('hidden') && !e.target.closest('#auth-container')) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Start App
+        initAuth();
+    </script>
+</body>
+</html>
